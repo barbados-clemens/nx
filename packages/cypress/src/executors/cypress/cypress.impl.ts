@@ -1,9 +1,10 @@
+import { createAsyncIterable } from '@nrwl/js/src/utils/create-async-iterable/create-async-iteratable';
+import { fork } from 'child_process';
 import {
   ExecutorContext,
   logger,
   parseTargetString,
   readTargetOptions,
-  runExecutor,
   stripIndents,
 } from '@nrwl/devkit';
 import 'dotenv/config';
@@ -20,7 +21,7 @@ export interface CypressExecutorOptions extends Json {
   cypressConfig: string;
   watch?: boolean;
   tsConfig?: string;
-  devServerTarget?: string;
+  devServerTargets?: string[];
   headed?: boolean;
   headless?: boolean;
   exit?: boolean;
@@ -53,10 +54,14 @@ export default async function cypressExecutor(
   // this is used by cypress component testing presets to build the executor contexts with the correct configuration options.
   process.env.NX_CYPRESS_TARGET_CONFIGURATION = context.configurationName;
   let success;
+  let childDevServers;
 
-  for await (const baseUrl of startDevServer(options, context)) {
+  for await (const output of startAllDevServers(options, context)) {
     try {
-      success = await runCypress(baseUrl, options);
+      childDevServers = Object.values(output).map((o) => o.childDevServer);
+      const firstDevServer = options.devServerTargets[0];
+      const firstDevServerOutput = output?.[firstDevServer];
+      success = await runCypress(firstDevServerOutput?.baseUrl, options);
       if (!options.watch) break;
     } catch (e) {
       logger.error(e.message);
@@ -65,6 +70,7 @@ export default async function cypressExecutor(
     }
   }
 
+  childDevServers?.forEach((p) => p?.kill());
   return { success };
 }
 
@@ -84,14 +90,82 @@ function normalizeOptions(
       options.ctTailwindPath = getTempTailwindPath(context);
     }
   }
+
+  if (!options.devServerTargets || options.devServerTargets?.length === 0) {
+    options.devServerTargets = [undefined];
+  }
   checkSupportedBrowser(options);
   warnDeprecatedHeadless(options);
   warnDeprecatedCypressVersion();
   return options;
 }
 
+async function* startAllDevServers(
+  options: CypressExecutorOptions,
+  context: ExecutorContext
+) {
+  const devServerOutput: Record<
+    string,
+    { baseUrl?: string; success?: boolean; childDevServer?: any }
+  > = {};
+  const allReady = () => {
+    // because not every dev server emits,
+    // need to make sure we at least have the first one
+    // all dev servers have at least been started.
+    const firstServer = options.devServerTargets[0];
+    return (
+      // does not have to have a URL, but needs to be defined
+      devServerOutput[firstServer]?.baseUrl !== undefined &&
+      Object.keys(devServerOutput).length === options.devServerTargets.length
+    );
+  };
+  return yield* createAsyncIterable<typeof devServerOutput>(
+    async ({ next, error, done }) => {
+      if (options.devServerTargets.length === 0 || options.skipServe) {
+        next({});
+      }
+
+      for (const target of options.devServerTargets) {
+        const parsedTarget = parseTargetString(target);
+        const targetOptions = readTargetOptions(parsedTarget, context);
+        const supportsWatch = Object.keys(targetOptions).includes('watch');
+        const childDevServer = fork(
+          join(__dirname, '..', '..', 'utils', 'start-forked-dev-server.js')
+        );
+        // make sure all the dev servers are added to output
+        // so we can stop all of them downstream
+        devServerOutput[target] = {
+          childDevServer,
+        };
+        childDevServer.send({
+          context,
+          options: {
+            parsedTarget,
+            targetOptions,
+            supportsWatch,
+            watch: options.watch,
+          },
+        });
+        childDevServer.on('message', (output: any) => {
+          devServerOutput[target] = {
+            ...devServerOutput[target],
+            success: output?.success,
+            baseUrl: options.baseUrl || output?.baseUrl,
+          };
+          if (allReady()) {
+            next(devServerOutput);
+          } else {
+            console.log('emit', target, output);
+          }
+        });
+      }
+    }
+  );
+}
+
 function checkSupportedBrowser({ browser }: CypressExecutorOptions) {
-  // Browser was not passed in as an option, cypress will use whatever default it has set and we dont need to check it
+  // Browser was not passed in as an option, cypress will use whatever default it has set
+  // and we dont need to check it
   if (!browser) {
     return;
   }
@@ -141,43 +215,6 @@ NOTE:
 Support for Cypress versions < 10 is deprecated. Please upgrade to at least Cypress version 10. 
 A generator to migrate from v8 to v10 is provided. See https://nx.dev/cypress/v10-migration-guide
 `);
-  }
-}
-
-async function* startDevServer(
-  opts: CypressExecutorOptions,
-  context: ExecutorContext
-) {
-  // no dev server, return the provisioned base url
-  if (!opts.devServerTarget || opts.skipServe) {
-    yield opts.baseUrl;
-    return;
-  }
-
-  const { project, target, configuration } = parseTargetString(
-    opts.devServerTarget
-  );
-  const devServerTargetOpts = readTargetOptions(
-    { project, target, configuration },
-    context
-  );
-  const targetSupportsWatchOpt =
-    Object.keys(devServerTargetOpts).includes('watch');
-
-  for await (const output of await runExecutor<{
-    success: boolean;
-    baseUrl?: string;
-  }>(
-    { project, target, configuration },
-    // @NOTE: Do not forward watch option if not supported by the target dev server,
-    // this is relevant for running Cypress against dev server target that does not support this option,
-    // for instance @nguniversal/builders:ssr-dev-server.
-    targetSupportsWatchOpt ? { watch: opts.watch } : {},
-    context
-  )) {
-    if (!output.success && !opts.watch)
-      throw new Error('Could not compile application files');
-    yield opts.baseUrl || (output.baseUrl as string);
   }
 }
 

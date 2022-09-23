@@ -114,10 +114,12 @@ function addProject(tree: Tree, options: CypressProjectSchema) {
       "${options.project}:serve" as the devServerTarget. But you may need to define this target within the project, "${options.project}".
       `);
     }
-    const devServerTarget =
+    const devServerTargets =
       project.targets?.serve && project.targets?.serve?.defaultConfiguration
-        ? `${options.project}:serve:${project.targets.serve.defaultConfiguration}`
-        : `${options.project}:serve`;
+        ? [
+            `${options.project}:serve:${project.targets.serve.defaultConfiguration}`,
+          ]
+        : [`${options.project}:serve`];
     e2eProjectConfig = {
       root: options.projectRoot,
       sourceRoot: joinPathFragments(options.projectRoot, 'src'),
@@ -130,12 +132,12 @@ function addProject(tree: Tree, options: CypressProjectSchema) {
               options.projectRoot,
               cypressConfig
             ),
-            devServerTarget,
+            devServerTargets,
             testingType: 'e2e',
           },
           configurations: {
             production: {
-              devServerTarget: `${options.project}:serve:production`,
+              devServerTargets: [`${options.project}:serve:production`],
             },
           },
         },

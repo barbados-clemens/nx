@@ -36,9 +36,12 @@
       "x-completion-type": "file",
       "x-completion-glob": "tsconfig.*.json"
     },
-    "devServerTarget": {
-      "type": "string",
-      "description": "Dev server target to run tests against."
+    "devServerTargets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of Dev server target to run before running tests. The first target will be used to infer the baseUrl from."
     },
     "headed": {
       "type": "boolean",

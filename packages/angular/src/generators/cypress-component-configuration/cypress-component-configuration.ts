@@ -119,7 +119,7 @@ async function updateProjectConfig(
   projectConfig.targets['component-test'].options = {
     ...projectConfig.targets['component-test'].options,
     skipServe: true,
-    devServerTarget: found.target,
+    devServerTargets: [found.target],
   };
   updateProjectConfiguration(tree, options.project, projectConfig);
 }

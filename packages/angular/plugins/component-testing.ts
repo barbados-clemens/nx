@@ -142,13 +142,13 @@ function getBuildableTarget(ctContext: ExecutorContext) {
     ctContext
   );
 
-  if (!cypressCtOptions.devServerTarget) {
+  if (cypressCtOptions.devServerTargets?.length < 1) {
     throw new Error(
-      `Unable to find the 'devServerTarget' executor option in the '${ctContext.targetName}' target of the '${ctContext.projectName}' project`
+      `Unable to find the 'devServerTargets' executor option in the '${ctContext.targetName}' target of the '${ctContext.projectName}' project`
     );
   }
 
-  return parseTargetString(cypressCtOptions.devServerTarget);
+  return parseTargetString(cypressCtOptions.devServerTargets[0]);
 }
 
 function normalizeBuildTargetOptions(

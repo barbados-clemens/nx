@@ -18,7 +18,7 @@ describe('Cypress builder', () => {
     cypressConfig: 'apps/my-app-e2e/cypress.json',
     parallel: false,
     tsConfig: 'apps/my-app-e2e/tsconfig.json',
-    devServerTarget: 'my-app:serve',
+    devServerTargets: ['my-app:serve'],
     exit: true,
     record: false,
     baseUrl: undefined,
@@ -167,7 +167,7 @@ A generator to migrate from v8 to v10 is provided. See https://nx.dev/cypress/v1
     const { success } = await cypressExecutor(
       {
         ...cypressOptions,
-        devServerTarget: undefined,
+        devServerTargets: undefined,
         baseUrl: 'http://my-distant-host.com',
       },
       mockContext
@@ -205,7 +205,7 @@ A generator to migrate from v8 to v10 is provided. See https://nx.dev/cypress/v1
     const { success } = await cypressExecutor(
       {
         ...cypressOptions,
-        devServerTarget: undefined,
+        devServerTargets: undefined,
         ciBuildId,
       },
       mockContext
@@ -241,7 +241,7 @@ A generator to migrate from v8 to v10 is provided. See https://nx.dev/cypress/v1
       {
         cypressConfig: 'apps/my-app-e2e/cypress.json',
         tsConfig: 'apps/my-app-e2e/tsconfig.json',
-        devServerTarget: undefined,
+        devServerTargets: undefined,
         headless: true,
         exit: true,
         parallel: false,

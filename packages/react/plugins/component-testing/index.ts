@@ -71,11 +71,11 @@ export function nxComponentTestingPreset(
       ctExecutorContext
     );
 
-    const buildTarget = ctExecutorOptions.devServerTarget;
+    const buildTarget = ctExecutorOptions.devServerTargets?.[0];
 
     if (!buildTarget) {
       throw new Error(
-        `Unable to find the 'devServerTarget' executor option in the '${ctTargetName}' target of the '${ctProjectName}' project`
+        `Unable to find the 'devServerTargets' executor option in the '${ctTargetName}' target of the '${ctProjectName}' project`
       );
     }
 
