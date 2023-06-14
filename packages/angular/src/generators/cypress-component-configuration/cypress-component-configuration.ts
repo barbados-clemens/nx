@@ -3,7 +3,10 @@ import {
   addMountDefinition,
   addDefaultCTConfig,
 } from '@nx/cypress/src/utils/config';
-import { findBuildConfig } from '@nx/cypress/src/utils/find-target-options';
+import {
+  FoundTarget,
+  findBuildConfig,
+} from '@nx/cypress/src/utils/find-target-options';
 import {
   formatFiles,
   joinPathFragments,
@@ -116,18 +119,24 @@ async function updateProjectConfig(
   tree: Tree,
   options: CypressComponentConfigSchema
 ) {
-  const found = await findBuildConfig(tree, {
-    project: options.project,
-    buildTarget: options.buildTarget,
-    validExecutorNames: new Set<string>([
-      '@nx/angular:webpack-browser',
-      '@nrwl/angular:webpack-browser',
-      '@angular-devkit/build-angular:browser',
-    ]),
-  });
+  let found: FoundTarget;
+  if (options.buildTarget) {
+    found = {
+      target: options.buildTarget,
+    };
+  } else {
+    found = await findBuildConfig(tree, {
+      project: options.project,
+      buildTarget: options.buildTarget,
+      validExecutorNames: new Set<string>([
+        '@nx/angular:webpack-browser',
+        '@nrwl/angular:webpack-browser',
+        '@angular-devkit/build-angular:browser',
+      ]),
+    });
 
-  assertValidConfig(found?.config);
-
+    assertValidConfig(found?.config);
+  }
   const projectConfig = readProjectConfiguration(tree, options.project);
   projectConfig.targets['component-test'].options = {
     ...projectConfig.targets['component-test'].options,
