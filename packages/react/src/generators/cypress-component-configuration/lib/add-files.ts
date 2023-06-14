@@ -26,7 +26,11 @@ export async function addFiles(
   const { addMountDefinition, addDefaultCTConfig } = await import(
     '@nx/cypress/src/utils/config'
   );
-  const actualBundler = await getBundlerFromTarget(found, tree);
+  // if buildTarget and bundler is specified, don't try validating.
+  const actualBundler =
+    options.buildTarget && options.bundler
+      ? options.bundler
+      : await getBundlerFromTarget(found, tree);
 
   if (options.bundler && options.bundler !== actualBundler) {
     logger.warn(

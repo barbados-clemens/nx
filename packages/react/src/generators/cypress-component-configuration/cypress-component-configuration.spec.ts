@@ -36,6 +36,9 @@ describe('React:CypressComponentTestConfiguration', () => {
   beforeEach(() => {
     tree = createTreeWithEmptyWorkspace({ layout: 'apps-libs' });
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('should generate cypress config with vite', async () => {
     mockedAssertCypressVersion.mockReturnValue();
@@ -395,7 +398,7 @@ describe('React:CypressComponentTestConfiguration', () => {
       tree.exists('libs/some-lib/src/lib/another-cmp/another-cmp.spec.cy.js')
     ).toBeFalsy();
   });
-  it('should throw error when an invalid --build-target is provided', async () => {
+  it('should NOT throw error when an invalid --build-target is provided', async () => {
     mockedAssertCypressVersion.mockReturnValue();
     await applicationGenerator(tree, {
       e2eTestRunner: 'none',
@@ -436,18 +439,16 @@ describe('React:CypressComponentTestConfiguration', () => {
       },
       dependencies: {},
     };
-    await expect(async () => {
+    expect(async () => {
       await cypressComponentConfigGenerator(tree, {
         project: 'some-lib',
         generateTests: true,
         buildTarget: 'my-app:build',
       });
-    }).rejects.toThrowErrorMatchingInlineSnapshot(`
-      "Error trying to find build configuration. Try manually specifying the build target with the --build-target flag.
-      Provided project? some-lib
-      Provided build target? my-app:build
-      Provided Executors? @nx/webpack:webpack, @nx/vite:build, @nrwl/webpack:webpack, @nrwl/vite:build"
-    `);
+    }).resolves;
+    expect(
+      require('@nx/devkit').createProjectGraphAsync
+    ).not.toHaveBeenCalled();
   });
 
   it('should setup cypress config files correctly', async () => {

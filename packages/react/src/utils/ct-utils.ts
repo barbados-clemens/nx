@@ -27,16 +27,24 @@ export async function addCTTargetWithBuildTarget(
     validExecutorNames: Set<string>;
   }
 ): Promise<FoundTarget> {
-  const { findBuildConfig } = await import(
-    '@nx/cypress/src/utils/find-target-options'
-  );
-  const found = await findBuildConfig(tree, {
-    project: options.project,
-    buildTarget: options.buildTarget,
-    validExecutorNames: options.validExecutorNames,
-  });
+  let found: FoundTarget;
 
-  assertValidConfig(found?.config);
+  if (options.buildTarget) {
+    found = {
+      target: options.buildTarget,
+    };
+  } else {
+    const { findBuildConfig } = await import(
+      '@nx/cypress/src/utils/find-target-options'
+    );
+    found = await findBuildConfig(tree, {
+      project: options.project,
+      buildTarget: options.buildTarget,
+      validExecutorNames: options.validExecutorNames,
+    });
+
+    assertValidConfig(found?.config);
+  }
 
   const projectConfig = readProjectConfiguration(tree, options.project);
   projectConfig.targets['component-test'].options = {
