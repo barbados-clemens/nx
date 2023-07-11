@@ -47,6 +47,11 @@
           },
           {
             "input": "packages/angular",
+            "glob": "**/*.mjs",
+            "output": "/"
+          },
+          {
+            "input": "packages/angular",
             "glob": "**/*.d.ts",
             "output": "/"
           },

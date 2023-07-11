@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "version": 2,
+  "title": "Jest executor",
+  "description": "",
+  "type": "object",
+  "properties": {
+    "tsConfig": {
+      "type": "string",
+      "description": "Path to the tsconfig.spec.json file"
+    },
+    "updateSnapshots": {
+      "type": "boolean",
+      "alias": "u",
+      "description": "Update snapshots"
+    }
+  },
+  "required": ["tsConfig"]
+}

@@ -1,7 +1,14 @@
 import 'dotenv/config';
+import { sync as glob } from 'fast-glob';
 import * as chalk from 'chalk';
 import type { ExecutorContext } from '@nx/devkit';
-import { cacheDir, joinPathFragments, logger, stripIndents } from '@nx/devkit';
+import {
+  cacheDir,
+  joinPathFragments,
+  logger,
+  stripIndents,
+  workspaceRoot,
+} from '@nx/devkit';
 import {
   copyAssets,
   copyPackageJson,
@@ -177,6 +184,19 @@ export async function* esbuildExecutor(
     // Emit a build event for each file format.
     for (let i = 0; i < options.format.length; i++) {
       const format = options.format[i];
+      const testFiles = new Set(
+        // TODO(caleb): make this configurable
+        glob('**/*.spec.ts', {
+          cwd: workspaceRoot,
+          ignore: ['node_modules'],
+        }).flat()
+      );
+
+      options.additionalEntryPoints = [
+        ...(options.additionalEntryPoints ?? []),
+        ...testFiles,
+      ];
+
       const esbuildOptions = buildEsbuildOptions(format, options, context);
       const buildResult = await esbuild.build(esbuildOptions);
 
